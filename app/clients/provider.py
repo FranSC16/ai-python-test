@@ -84,7 +84,7 @@ class ProviderClient:
         except (RateLimitError, ServerError):
             raise
         except Exception as e:
-            logger.error(f"Notify failed: {e}")
+            logger.error(f"Notify failed [{type(e).__name__}]: {e}")
             return False
 
 
