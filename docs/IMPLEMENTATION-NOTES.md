@@ -1,26 +1,26 @@
 # Implementation Notes - Intelligent Notification Service
 
-## Indice
+## Índice
 
-1. [Vision General](#vision-general)
+1. [Visión General](#visión-general)
 2. [Arquitectura](#arquitectura)
 3. [Estructura del Repositorio](#estructura-del-repositorio)
-4. [Modulos en Detalle](#modulos-en-detalle)
+4. [Módulos en Detalle](#módulos-en-detalle)
 5. [Pipeline de Procesamiento](#pipeline-de-procesamiento)
 6. [Parser de Respuestas IA](#parser-de-respuestas-ia)
 7. [Estrategia de Reintentos](#estrategia-de-reintentos)
 8. [Sistema de Logging](#sistema-de-logging)
 9. [Infraestructura Docker](#infraestructura-docker)
-10. [Como Ejecutar y Testear](#como-ejecutar-y-testear)
-11. [Decisiones de Diseno](#decisiones-de-diseno)
+10. [Cómo Ejecutar y Testear](#cómo-ejecutar-y-testear)
+11. [Decisiones de Diseño](#decisiones-de-diseño)
 
 ---
 
-## Vision General
+## Visión General
 
-Servicio de notificaciones que recibe instrucciones en lenguaje natural (ej: "Manda un email a juan@example.com diciendo hola"), extrae los datos estructurados mediante un motor de IA, y coordina el envio de la notificacion al proveedor correspondiente.
+Servicio de notificaciones que recibe instrucciones en lenguaje natural (ej: "Manda un email a juan@example.com diciendo hola"), extrae los datos estructurados mediante un motor de IA, y coordina el envío de la notificación al proveedor correspondiente.
 
-El servicio esta construido con **FastAPI** y sigue una arquitectura por capas (Layered Service) donde cada componente tiene una responsabilidad unica y bien definida.
+El servicio está construido con **FastAPI** y sigue una arquitectura por capas (Layered Service) donde cada componente tiene una responsabilidad única y bien definida.
 
 ### Flujo simplificado
 
@@ -65,7 +65,7 @@ El servicio sigue el patron **Layered Service Architecture** con separacion clar
                Provider (3001)              Redis (6379)
 ```
 
-**Principio clave:** Cada capa solo conoce la capa inmediatamente inferior. Los endpoints no saben de HTTP calls ni de parsing. El processor no sabe como se repara un JSON roto. El parser no sabe nada de Redis.
+**Principio clave:** Cada capa solo conoce la capa inmediatamente inferior. Los endpoints no saben de HTTP calls ni de parsing. El processor no sabe cómo se repara un JSON roto. El parser no sabe nada de Redis.
 
 ---
 
@@ -74,16 +74,16 @@ El servicio sigue el patron **Layered Service Architecture** con separacion clar
 ```
 ai-python-test/
 │
-├── app/                            # Codigo fuente del servicio
+├── app/                            # Código fuente del servicio
 │   ├── main.py                     # Punto de entrada FastAPI + endpoints
 │   ├── Dockerfile                  # Imagen Docker del servicio
 │   ├── requirements.txt            # Dependencias Python
 │   │
 │   ├── models/                     # Modelos de datos (Pydantic)
 │   │   ├── __init__.py
-│   │   └── schemas.py              # Schemas de request/response/extraccion
+│   │   └── schemas.py              # Schemas de request/response/extracción
 │   │
-│   ├── core/                       # Infraestructura y configuracion
+│   ├── core/                       # Infraestructura y configuración
 │   │   ├── __init__.py
 │   │   ├── config.py               # Settings centralizados (URLs, timeouts, TTL)
 │   │   └── redis.py                # Cliente Redis async con operaciones CRUD
@@ -92,11 +92,11 @@ ai-python-test/
 │   │   ├── __init__.py
 │   │   └── provider.py             # Cliente del proveedor IA + notificaciones
 │   │
-│   ├── parsers/                    # Logica de parsing y limpieza
+│   ├── parsers/                    # Lógica de parsing y limpieza
 │   │   ├── __init__.py
 │   │   └── ai_parser.py            # Pipeline de 5 pasos para respuestas IA
 │   │
-│   ├── services/                   # Logica de negocio
+│   ├── services/                   # Lógica de negocio
 │   │   ├── __init__.py
 │   │   └── processor.py            # Orquestador: extract -> parse -> notify
 │   │
@@ -106,7 +106,7 @@ ai-python-test/
 │
 ├── provider/                       # Mock del proveedor (NO MODIFICAR)
 │   ├── app.py                      # Servidor FastAPI mock
-│   ├── responses.py                # Generador estocastico de respuestas IA
+│   ├── responses.py                # Generador estocástico de respuestas IA
 │   ├── Dockerfile
 │   └── requirements.txt
 │
@@ -117,81 +117,81 @@ ai-python-test/
 │   ├── grafana/
 │   │   └── provisioning/           # Dashboard y datasource preconfigurados
 │   └── influxdb/
-│       └── init.iql                # Inicializacion de la base de datos k6
+│       └── init.iql                # Inicialización de la base de datos k6
 │
-├── docker-compose.yaml             # Orquestacion de todos los servicios
+├── docker-compose.yaml             # Orquestación de todos los servicios
 ├── docs/
 │   ├── IMPLEMENTATION-NOTES.md     # Este documento
-│   └── plans/                      # Documentos de diseno e implementacion
+│   └── plans/                      # Documentos de diseño e implementación
 │       ├── 2026-06-01-notification-service-design.md
 │       └── 2026-06-01-notification-service-plan.md
 │
-├── readme.md                       # Enunciado de la prueba tecnica
+├── readme.md                       # Enunciado de la prueba técnica
 ├── .gitignore
 └── LICENSE
 ```
 
 ---
 
-## Modulos en Detalle
+## Módulos en Detalle
 
 ### `app/main.py` - Punto de Entrada
 
-Define la aplicacion FastAPI, el ciclo de vida (lifespan) y los tres endpoints requeridos.
+Define la aplicación FastAPI, el ciclo de vida (lifespan) y los tres endpoints requeridos.
 
-**Lifespan:** Gestiona la inicializacion y cierre de conexiones. Al arrancar, conecta con Redis y crea el cliente HTTP. Al parar, cierra ambas conexiones limpiamente. Si Redis no esta disponible al arrancar, la aplicacion falla con un log `CRITICAL` en vez de arrancar en un estado inconsistente.
+**Lifespan:** Gestiona la inicialización y cierre de conexiones. Al arrancar, conecta con Redis y crea el cliente HTTP. Al parar, cierra ambas conexiones limpiamente. Si Redis no está disponible al arrancar, la aplicación falla con un log `CRITICAL` en vez de arrancar en un estado inconsistente.
 
 **Endpoints:**
 
-| Endpoint | Metodo | Descripcion |
+| Endpoint | Método | Descripción |
 |---|---|---|
 | `/v1/requests` | POST | Recibe `user_input`, genera UUID, almacena en Redis con estado `queued`, devuelve `201` |
 | `/v1/requests/{id}/process` | POST | Verifica existencia, lanza background task, devuelve `202` inmediatamente |
 | `/v1/requests/{id}` | GET | Lee estado de Redis, devuelve `200` con `id` y `status` |
 
-Cada endpoint tiene error handling con try/catch que captura errores de Redis y devuelve 500 generico al cliente sin exponer detalles internos.
+Cada endpoint tiene error handling con try/catch que captura errores de Redis y devuelve 500 genérico al cliente sin exponer detalles internos.
 
 ---
 
 ### `app/models/schemas.py` - Modelos de Datos
 
-Todos los modelos usan **Pydantic v2** con validacion estricta.
+Todos los modelos usan **Pydantic v2** con validación estricta.
 
 | Modelo | Uso |
 |---|---|
-| `CreateRequest` | Input del usuario. Valida que `user_input` no este vacio (`min_length=1`) |
+| `CreateRequest` | Input del usuario. Valida que `user_input` no esté vacío (`min_length=1`) |
 | `CreateResponse` | Respuesta con el `id` generado |
 | `StatusResponse` | Respuesta con `id` y `status` (enum: `queued\|processing\|sent\|failed`) |
-| `ExtractedData` | Datos extraidos por el parser: `to`, `message`, `type` (enum: `email\|sms`) |
+| `ExtractedData` | Datos extraídos por el parser: `to`, `message`, `type` (enum: `email\|sms`) |
 | `AIMessage` | Mensaje para la API de IA (role + content) |
-| `AIExtractRequest` | Wrapper de lista de mensajes para el endpoint de extraccion |
+| `AIExtractRequest` | Wrapper de lista de mensajes para el endpoint de extracción |
 | `NotifyRequest` | Payload para el endpoint de notificaciones |
 
-**Principio:** Los modelos son el contrato entre capas. Si el parser produce un `ExtractedData` valido, el resto del pipeline puede confiar en que los datos son correctos.
+**Principio:** Los modelos son el contrato entre capas. Si el parser produce un `ExtractedData` válido, el resto del pipeline puede confiar en que los datos son correctos.
 
 ---
 
-### `app/core/config.py` - Configuracion
+### `app/core/config.py` - Configuración
 
-Usa `pydantic-settings` para cargar configuracion desde variables de entorno con prefijo `APP_`.
+Usa `pydantic-settings` para cargar configuración desde variables de entorno con prefijo `APP_`.
 
-| Setting | Default | Descripcion |
+| Setting | Default | Descripción |
 |---|---|---|
 | `provider_base_url` | `http://localhost:3001` | URL base del proveedor |
-| `api_key` | `test-dev-2026` | API key para autenticacion con el proveedor |
-| `redis_url` | `redis://ia-redis:6379/0` | URL de conexion a Redis |
-| `extract_timeout` | `10.0` | Timeout en segundos para la llamada de extraccion IA |
-| `notify_timeout` | `5.0` | Timeout en segundos para la llamada de notificacion |
-| `notify_max_retries` | `3` | Numero maximo de reintentos para notificaciones |
+| `api_key` | `test-dev-2026` | API key para autenticación con el proveedor |
+| `redis_url` | `redis://ia-redis:6379/0` | URL de conexión a Redis |
+| `extract_timeout` | `10.0` | Timeout en segundos para la llamada de extracción IA |
+| `notify_timeout` | `5.0` | Timeout en segundos para la llamada de notificación |
+| `notify_max_retries` | `3` | Número máximo de reintentos para notificaciones |
 | `request_ttl` | `3600` | Tiempo de vida de las requests en Redis (1 hora) |
 
-Para sobreescribir en produccion: `APP_REDIS_URL=redis://otro-host:6379/0`.
+Para sobreescribir en producción: `APP_REDIS_URL=redis://otro-host:6379/0`.
 
 ---
 
 ### `app/core/redis.py` - Almacenamiento
 
-Cliente Redis asincrono usando `redis.asyncio` con `hiredis` para parsing de protocolo optimizado.
+Cliente Redis asíncrono usando `redis.asyncio` con `hiredis` para parsing de protocolo optimizado.
 
 **Modelo de datos en Redis:**
 
@@ -204,23 +204,23 @@ TTL:    3600 segundos (auto-limpieza)
 
 **Operaciones:**
 
-| Metodo | Descripcion |
+| Método | Descripción |
 |---|---|
-| `connect()` | Crea conexion y verifica con PING |
-| `close()` | Cierra la conexion limpiamente |
+| `connect()` | Crea conexión y verifica con PING |
+| `close()` | Cierra la conexión limpiamente |
 | `create_request(id, user_input)` | Crea hash con estado `queued` y TTL |
 | `get_request(id)` | Lee todos los campos del hash. Devuelve `None` si no existe |
 | `update_status(id, status, result?, error?)` | Actualiza campos del hash |
 
-Todas las operaciones capturan `RedisError` y lo loguean con contexto (operacion + request_id).
+Todas las operaciones capturan `RedisError` y lo loguean con contexto (operación + request_id).
 
 ---
 
 ### `app/clients/provider.py` - Cliente HTTP
 
-Cliente HTTP asincrono con `httpx.AsyncClient` como singleton (connection pooling) y reintentos adaptativos con `tenacity`.
+Cliente HTTP asíncrono con `httpx.AsyncClient` como singleton (connection pooling) y reintentos adaptativos con `tenacity`.
 
-**Dos metodos principales:**
+**Dos métodos principales:**
 
 **`extract(messages)`** - Llama a `/v1/ai/extract`
 - Timeout: 10 segundos (la IA mock tarda 1.5-3s)
@@ -229,29 +229,29 @@ Cliente HTTP asincrono con `httpx.AsyncClient` como singleton (connection poolin
 
 **`notify(request)`** - Llama a `/v1/notify`
 - Timeout: 5 segundos
-- Reintentos adaptativos (ver seccion dedicada)
-- Manejo explicito de 401 (auth), 422 (validacion), 429 (rate limit), 5xx (server error)
+- Reintentos adaptativos (ver sección dedicada)
+- Manejo explícito de 401 (auth), 422 (validación), 429 (rate limit), 5xx (server error)
 
 ---
 
 ### `app/parsers/ai_parser.py` - Parser de Respuestas IA
 
-El componente mas critico. Pipeline de 5 pasos que maneja las respuestas estocasticas del motor de IA. Ver seccion dedicada mas abajo.
+El componente más crítico. Pipeline de 5 pasos que maneja las respuestas estocásticas del motor de IA. Ver sección dedicada más abajo.
 
 ---
 
 ### `app/services/processor.py` - Orquestador
 
-Funcion `process_request(request_id)` que se ejecuta como background task. Conecta todas las piezas en secuencia:
+Función `process_request(request_id)` que se ejecuta como background task. Conecta todas las piezas en secuencia:
 
 1. Lee la request de Redis
 2. Actualiza estado a `processing`
 3. Construye los mensajes (system prompt + user input) y llama a la IA
 4. Pasa la respuesta por el parser pipeline
-5. Envia la notificacion con reintentos
+5. Envía la notificación con reintentos
 6. Actualiza estado final a `sent` o `failed`
 
-**Garantia:** Nunca deja una request en estado `processing` indefinidamente. Cualquier error (esperado o inesperado) lleva a `failed` con un motivo descriptivo.
+**Garantía:** Nunca deja una request en estado `processing` indefinidamente. Cualquier error (esperado o inesperado) lleva a `failed` con un motivo descriptivo.
 
 ---
 
@@ -262,11 +262,11 @@ Funcion `process_request(request_id)` que se ejecuta como background task. Conec
 | Clase | Tests | Cubre |
 |---|---|---|
 | `TestDirectJSON` | 2 | JSON limpio (email y sms) |
-| `TestAlternativeKeys` | 3 | Keys no estandar (Recipient, destination, To, body, channel, method) |
+| `TestAlternativeKeys` | 3 | Keys no estándar (Recipient, destination, To, body, channel, method) |
 | `TestExtraAndMissingFields` | 4 | Campos extra ignorados, tipo inferido, destino faltante |
 | `TestMarkdownWrapped` | 3 | JSON en bloques \`\`\`json, \`\`\` generico, y embebido en texto |
 | `TestBrokenJSON` | 3 | Single quotes, unquoted keys, JSON truncado |
-| `TestRefusal` | 3 | Rechazos en espanol, ingles, y errores de politica |
+| `TestRefusal` | 3 | Rechazos en español, inglés, y errores de política |
 
 ---
 
@@ -316,7 +316,7 @@ GET /v1/requests/{id}
 
 ## Parser de Respuestas IA
 
-El motor IA mock devuelve respuestas con una distribucion estocastica:
+El motor IA mock devuelve respuestas con una distribución estocástica:
 
 | Probabilidad | Tipo | Ejemplo |
 |---|---|---|
@@ -329,25 +329,25 @@ El motor IA mock devuelve respuestas con una distribucion estocastica:
 
 ### Los 5 Pasos del Pipeline
 
-El parser ejecuta los pasos en orden. En cuanto uno tiene exito, devuelve el resultado (early return para performance):
+El parser ejecuta los pasos en orden. En cuanto uno tiene éxito, devuelve el resultado (early return para performance):
 
-**Paso 1 - JSON directo:** `json.loads()` sobre el contenido completo. Cubre el 50% de los casos. Es el camino mas rapido y no involucra regex.
+**Paso 1 - JSON directo:** `json.loads()` sobre el contenido completo. Cubre el 50% de los casos. Es el camino más rápido y no involucra regex.
 
 **Paso 2 - Markdown:** Regex compilada busca bloques `` ```json ... ``` `` o `` ``` ... ``` ``. Extrae el contenido del bloque y lo parsea con `json.loads()`.
 
-**Paso 3 - JSON embebido:** Regex busca patrones `{...}` en texto libre. Util cuando la IA responde "Claro, aqui tienes: {...}".
+**Paso 3 - JSON embebido:** Regex busca patrones `{...}` en texto libre. Útil cuando la IA responde "Claro, aquí tienes: {...}".
 
-**Paso 4 - Reparacion:** Para JSON roto, aplica una cadena de reparaciones:
+**Paso 4 - Reparación:** Para JSON roto, aplica una cadena de reparaciones:
 - Elimina trailing `...` (JSON truncado)
 - Cierra llaves abiertas sin cerrar
 - Reemplaza single quotes por double quotes
 - Envuelve keys sin comillas en comillas
 
-**Paso 5 - Fallo:** Si ningun paso pudo extraer datos, devuelve `None`. El processor marca la request como `failed`.
+**Paso 5 - Fallo:** Si ningún paso pudo extraer datos, devuelve `None`. El processor marca la request como `failed`.
 
-### Normalizacion de Keys
+### Normalización de Keys
 
-Despues de extraer el JSON (en cualquier paso), se normalizan las keys a su forma canonica:
+Después de extraer el JSON (en cualquier paso), se normalizan las keys a su forma canónica:
 
 ```
 Recipient, To, destination  -->  to
@@ -361,11 +361,11 @@ Se ignoran campos extra (confidence, latency_ms, etc.).
 
 Si falta el campo `type` pero tenemos `to`:
 - Si `to` tiene formato email (`x@y.com`) -> se infiere `"email"`
-- Si `to` tiene formato telefono (`600111222`) -> se infiere `"sms"`
+- Si `to` tiene formato teléfono (`600111222`) -> se infiere `"sms"`
 
 ### Performance
 
-- Todas las regex estan compiladas a nivel de modulo (una sola vez al importar)
+- Todas las regex están compiladas a nivel de módulo (una sola vez al importar)
 - El pipeline corta en el primer paso exitoso (no ejecuta los siguientes)
 - No hay I/O ni llamadas de red, solo procesamiento de strings en memoria
 
@@ -386,7 +386,7 @@ Intento 3: falla con 429
   -> Se rinde, marca como failed
 ```
 
-**Razon:** El rate limit indica sobrecarga del proveedor. Esperar mas tiempo entre reintentos le da margen para recuperarse.
+**Razón:** El rate limit indica sobrecarga del proveedor. Esperar más tiempo entre reintentos le da margen para recuperarse.
 
 ### Server Error (HTTP 5xx)
 
@@ -399,7 +399,7 @@ Intento 3: falla con 500
   -> Se rinde, marca como failed
 ```
 
-**Razon:** Los errores 500 suelen ser transitorios (el proveedor los genera aleatoriamente). Se reintenta mas rapido porque no hay un limite de tasa que respetar.
+**Razón:** Los errores 500 suelen ser transitorios (el proveedor los genera aleatoriamente). Se reintenta más rápido porque no hay un límite de tasa que respetar.
 
 ### Otros Errores
 
@@ -409,7 +409,7 @@ Timeouts, errores de red, 401, 422: **no se reintentan**. Son errores que no se 
 
 ## Sistema de Logging
 
-Logging estructurado con etiquetas de modulo y operacion para facilitar el debugging:
+Logging estructurado con etiquetas de módulo y operación para facilitar el debugging:
 
 ### Formato
 
@@ -417,26 +417,26 @@ Logging estructurado con etiquetas de modulo y operacion para facilitar el debug
 2026-06-01 18:15:21,936 - services.processor - INFO - [processor] Starting processing for request abc-123
 ```
 
-Estructura: `timestamp - modulo - nivel - [componente] mensaje`
+Estructura: `timestamp - módulo - nivel - [componente] mensaje`
 
 ### Niveles por Tipo de Evento
 
 | Nivel | Uso |
 |---|---|
-| `CRITICAL` | Fallos de conexion a Redis o inicializacion - la app no puede funcionar |
-| `ERROR` | Fallos en operaciones individuales (extract, notify, store) con tipo de excepcion |
+| `CRITICAL` | Fallos de conexión a Redis o inicialización - la app no puede funcionar |
+| `ERROR` | Fallos en operaciones individuales (extract, notify, store) con tipo de excepción |
 | `WARNING` | Errores recuperables (rate limit, respuesta IA no parseable, request no encontrada) |
-| `INFO` | Flujo normal (request creada, procesamiento iniciado, notificacion enviada) |
-| `DEBUG` | Detalle del parser (que paso extrajo los datos, inferencia de tipo) |
+| `INFO` | Flujo normal (request creada, procesamiento iniciado, notificación enviada) |
+| `DEBUG` | Detalle del parser (qué paso extrajo los datos, inferencia de tipo) |
 
-### Que NO se loguea (seguridad)
+### Qué NO se loguea (seguridad)
 
-- Direcciones de email o numeros de telefono
+- Direcciones de email o números de teléfono
 - Contenido de los mensajes del usuario
-- API keys o tokens de autenticacion
+- API keys o tokens de autenticación
 - Payloads completos de request/response
 
-Solo se loguean: IDs de request, tipos de notificacion, longitudes de respuesta, codigos de estado HTTP, y tipos de excepcion.
+Solo se loguean: IDs de request, tipos de notificación, longitudes de respuesta, códigos de estado HTTP, y tipos de excepción.
 
 ---
 
@@ -444,12 +444,12 @@ Solo se loguean: IDs de request, tipos de notificacion, longitudes de respuesta,
 
 ### Servicios
 
-| Servicio | Imagen | Puerto | Descripcion |
+| Servicio | Imagen | Puerto | Descripción |
 |---|---|---|---|
 | `redis` | `redis:7-alpine` | 6379 | Almacenamiento de estado de requests |
 | `app` | Build desde `./app` | 5000 (via provider) | Nuestro servicio de notificaciones |
 | `provider` | Build desde `./provider` | 3001, 5000 | Mock de IA + notificaciones (proporcionado) |
-| `influxdb` | `influxdb:1.8` | 8086 (interno) | Base de datos de metricas para k6 |
+| `influxdb` | `influxdb:1.8` | 8086 (interno) | Base de datos de métricas para k6 |
 | `grafana` | `grafana/grafana` | 3000 | Dashboard de resultados |
 | `load-test` | `grafana/k6` | - | Suite de carga (ejecuta y sale) |
 
@@ -470,11 +470,11 @@ provider (healthy)┘
 influxdb (healthy)┘
 ```
 
-La app solo arranca cuando Redis y el provider estan healthy. El load-test solo arranca cuando todo esta listo.
+La app solo arranca cuando Redis y el provider están healthy. El load-test solo arranca cuando todo está listo.
 
 ---
 
-## Como Ejecutar y Testear
+## Cómo Ejecutar y Testear
 
 ### Prerequisitos
 
@@ -487,15 +487,15 @@ La app solo arranca cuando Redis y el provider estan healthy. El load-test solo 
 docker-compose up -d --build
 ```
 
-Esto levanta: Redis, Provider, App, InfluxDB y Grafana. El load-test tambien se lanza automaticamente.
+Esto levanta: Redis, Provider, App, InfluxDB y Grafana. El load-test también se lanza automáticamente.
 
-Si quieres levantar sin el load-test automatico:
+Si quieres levantar sin el load-test automático:
 
 ```bash
 docker-compose up -d --build redis provider app influxdb grafana
 ```
 
-### 2. Verificar que los servicios estan corriendo
+### 2. Verificar que los servicios están corriendo
 
 ```bash
 docker-compose ps
@@ -540,7 +540,7 @@ Respuesta esperada (200):
 {"id": "uuid", "status": "sent"}
 ```
 
-Nota: el estado puede ser `"failed"` si el mock de IA devolvio un rechazo (10% de probabilidad). Esto es comportamiento esperado.
+Nota: el estado puede ser `"failed"` si el mock de IA devolvió un rechazo (10% de probabilidad). Esto es comportamiento esperado.
 
 ### 4. Ejecutar Tests Unitarios (local)
 
@@ -568,28 +568,28 @@ Esto ejecuta la suite de carga con:
 
 Checks que se validan:
 
-| Check | Descripcion |
+| Check | Descripción |
 |---|---|
-| `create status is 201 or 200` | El endpoint de creacion responde correctamente |
-| `create response is valid json` | La respuesta es JSON valido |
+| `create status is 201 or 200` | El endpoint de creación responde correctamente |
+| `create response is valid json` | La respuesta es JSON válido |
 | `id is present in response` | El campo `id` existe en la respuesta |
 | `process status is 202 or 200` | El endpoint de proceso responde correctamente |
 | `status request is 200` | El endpoint de estado responde correctamente |
-| `status response is valid json` | La respuesta de estado es JSON valido |
+| `status response is valid json` | La respuesta de estado es JSON válido |
 | `status is valid string` | El estado es uno de: `queued`, `processing`, `sent`, `failed` |
 
 ### 6. Ver Resultados en Grafana
 
 Abrir en el navegador: http://localhost:3000/d/ia-performance-scorecard/
 
-Dashboard preconfigurado con metricas de k6 en tiempo real.
+Dashboard preconfigurado con métricas de k6 en tiempo real.
 
 ### 7. Ver Logs de la Aplicacion
 
 ```bash
-docker-compose logs app --tail 100        # Ultimas 100 lineas
+docker-compose logs app --tail 100        # Últimas 100 líneas
 docker-compose logs app -f                # Seguir logs en tiempo real
-docker-compose logs app --since 5m        # Ultimos 5 minutos
+docker-compose logs app --since 5m        # Últimos 5 minutos
 ```
 
 ### 8. Parar Todo
@@ -598,7 +598,7 @@ docker-compose logs app --since 5m        # Ultimos 5 minutos
 docker-compose down
 ```
 
-Para eliminar tambien los volumenes:
+Para eliminar también los volúmenes:
 
 ```bash
 docker-compose down -v
@@ -606,19 +606,19 @@ docker-compose down -v
 
 ---
 
-## Decisiones de Diseno
+## Decisiones de Diseño
 
-### Por que Redis en vez de un dict en memoria?
-Aunque la prueba no exige persistencia, Redis demuestra una solucion production-ready. Ademas, si se escalase a multiples workers de uvicorn, un dict en memoria no seria compartido entre procesos. Redis si.
+### ¿Por qué Redis en vez de un dict en memoria?
+Aunque la prueba no exige persistencia, Redis demuestra una solución production-ready. Además, si se escalase a múltiples workers de uvicorn, un dict en memoria no sería compartido entre procesos. Redis sí.
 
-### Por que background tasks en vez de procesamiento sincrono?
-El endpoint de proceso devuelve `202 Accepted` inmediatamente. La extraccion IA tarda 1.5-3 segundos, y con 200 VUs concurrentes, bloquear el endpoint agotaria los workers. El patron async con consulta de estado es el estandar en la industria para operaciones de larga duracion.
+### ¿Por qué background tasks en vez de procesamiento síncrono?
+El endpoint de proceso devuelve `202 Accepted` inmediatamente. La extracción IA tarda 1.5-3 segundos, y con 200 VUs concurrentes, bloquear el endpoint agotaría los workers. El patrón async con consulta de estado es el estándar en la industria para operaciones de larga duración.
 
-### Por que un pipeline de parsing en vez de un solo regex?
-Cada paso del pipeline es una funcion pura, testeable y con responsabilidad unica. El pipeline intenta primero lo mas simple (JSON directo) y solo recurre a heuristics si falla. Esto es graceful degradation: el 50% de las respuestas se parsean en microsegundos sin tocar regex.
+### ¿Por qué un pipeline de parsing en vez de un solo regex?
+Cada paso del pipeline es una función pura, testeable y con responsabilidad única. El pipeline intenta primero lo más simple (JSON directo) y solo recurre a heurísticas si falla. Esto es graceful degradation: el 50% de las respuestas se parsean en microsegundos sin tocar regex.
 
-### Por que retry adaptativo en vez de uno generico?
-Un 429 y un 500 tienen semanticas diferentes. El 429 dice "estoy sobrecargado, espera mas". El 500 dice "algo fallo, prueba de nuevo". Respetar esta diferencia es lo que se espera de un backend engineer senior.
+### ¿Por qué retry adaptativo en vez de uno genérico?
+Un 429 y un 500 tienen semánticas diferentes. El 429 dice "estoy sobrecargado, espera más". El 500 dice "algo falló, prueba de nuevo". Respetar esta diferencia es lo que se espera de un backend engineer senior.
 
-### Por que no se loguean datos sensibles?
-En produccion, los logs se envian a sistemas centralizados (CloudWatch, DataDog, ELK). Loguear emails, telefonos o contenido de mensajes seria una violacion de privacidad. Los IDs de request son suficientes para trazar problemas.
+### ¿Por qué no se loguean datos sensibles?
+En producción, los logs se envían a sistemas centralizados (CloudWatch, DataDog, ELK). Loguear emails, teléfonos o contenido de mensajes sería una violación de privacidad. Los IDs de request son suficientes para trazar problemas.
