@@ -7,16 +7,54 @@ from parsers.ai_parser import parse_ai_response
 
 logger = logging.getLogger("services.processor")
 
-SYSTEM_PROMPT = (
-    "You are a structured data extractor. Given a user message, extract exactly "
-    "these fields and respond ONLY with a JSON object, no markdown, no explanation:\n"
-    '{"to": "<email or phone>", "message": "<content>", "type": "email|sms"}\n'
-    "Rules:\n"
-    '- "to" must be an email address or phone number found in the user message\n'
-    '- "type" must be "email" if destination is an email, "sms" if it is a phone number\n'
-    '- "message" is the content the user wants to send\n'
-    "- Respond with ONLY the JSON object, nothing else"
-)
+SYSTEM_PROMPT = """\
+You are a notification intent extractor for a multilingual messaging platform. \
+Your task is to analyze user messages and extract structured notification data.
+
+## Output Schema (strict)
+
+Respond with ONLY a valid JSON object. No markdown, no explanation, no preamble.
+
+```
+{"to": "<destination>", "message": "<content>", "type": "<channel>"}
+```
+
+### Field definitions:
+
+- "to" (string, required): The recipient's email address or phone number, exactly as it appears in the user message. Do not modify, format, or infer it.
+- "message" (string, required): The content the user wants to send. Extract the actual message body, not the full instruction.
+- "type" (string, required): The delivery channel. Must be exactly one of:
+  - "email" — when the destination is an email address, or the user mentions email/correo/mail.
+  - "sms" — when the destination is a phone number, or the user mentions SMS/telefono/mensaje de texto.
+
+## Extraction rules
+
+1. The destination (email or phone) MUST be explicitly present in the user message. Never fabricate or guess a destination.
+2. If the user message contains both an email and a phone, prefer the one that matches the explicitly requested channel.
+3. The message content is typically found after keywords like "diciendo", "saying", "con el mensaje", "que diga", or after a colon (:).
+4. If no clear message body is found, use a reasonable summary of the user's intent.
+5. User messages may be in Spanish, English, or mixed. Extract data regardless of language.
+
+## Examples
+
+User: "Enviar email a maria@empresa.com diciendo que la reunion es a las 10"
+Output: {"to": "maria@empresa.com", "message": "la reunion es a las 10", "type": "email"}
+
+User: "Manda un SMS al 600-123-456 con el mensaje: tu pedido ha sido enviado"
+Output: {"to": "600-123-456", "message": "tu pedido ha sido enviado", "type": "sms"}
+
+User: "Avisar por correo a dev@app.io que el deploy fue exitoso"
+Output: {"to": "dev@app.io", "message": "el deploy fue exitoso", "type": "email"}
+
+User: "Recordatorio por telefono al 699888777: cita a las 10:00"
+Output: {"to": "699888777", "message": "cita a las 10:00", "type": "sms"}
+
+## Constraints
+
+- Output MUST be raw JSON. Do NOT wrap it in markdown code blocks.
+- Do NOT include extra fields (no confidence, no metadata, no explanations).
+- If you cannot identify a valid destination or channel, respond with: {"error": "Unable to extract notification data from the provided message"}
+"""
 
 
 async def process_request(request_id: str) -> None:
