@@ -1,7 +1,10 @@
 import json
+import logging
 import re
 
 from models.schemas import ExtractedData
+
+logger = logging.getLogger("parsers.ai_parser")
 
 _MARKDOWN_JSON_RE = re.compile(r"```(?:json)?\s*\n?(.*?)\n?\s*```", re.DOTALL)
 _EMBEDDED_JSON_RE = re.compile(r"\{[^{}]*\}")
@@ -27,26 +30,40 @@ _PHONE_RE = re.compile(r"\b\d{3}-?\d{3}-?\d{3,4}\b")
 
 def parse_ai_response(raw: str) -> ExtractedData | None:
     if not raw or not raw.strip():
+        logger.debug("[parser] Received empty or whitespace-only response")
         return None
 
     content = raw.strip()
 
     data = _try_json(content)
     if data is not None:
-        return _normalize(data)
+        result = _normalize(data)
+        if result:
+            logger.debug("[parser] Extracted via step 1 (direct JSON)")
+        return result
 
     data = _try_markdown(content)
     if data is not None:
-        return _normalize(data)
+        result = _normalize(data)
+        if result:
+            logger.debug("[parser] Extracted via step 2 (markdown code block)")
+        return result
 
     data = _try_embedded(content)
     if data is not None:
-        return _normalize(data)
+        result = _normalize(data)
+        if result:
+            logger.debug("[parser] Extracted via step 3 (embedded JSON in text)")
+        return result
 
     data = _try_repair(content)
     if data is not None:
-        return _normalize(data)
+        result = _normalize(data)
+        if result:
+            logger.debug("[parser] Extracted via step 4 (repaired broken JSON)")
+        return result
 
+    logger.debug(f"[parser] All extraction steps failed, response preview: '{content[:80]}...'")
     return None
 
 
@@ -123,20 +140,26 @@ def _normalize(data: dict) -> ExtractedData | None:
     notif_type = normalized.get("type")
 
     if not to or not message:
+        logger.debug(f"[normalize] Missing required fields - to: {'present' if to else 'missing'}, message: {'present' if message else 'missing'}")
         return None
 
     if not notif_type:
         if _EMAIL_RE.match(str(to)):
             notif_type = "email"
+            logger.debug("[normalize] Inferred type 'email' from destination format")
         elif _PHONE_RE.match(str(to)):
             notif_type = "sms"
+            logger.debug("[normalize] Inferred type 'sms' from destination format")
         else:
+            logger.debug("[normalize] Could not infer notification type from destination")
             return None
 
     if notif_type not in ("email", "sms"):
+        logger.debug(f"[normalize] Invalid notification type: '{notif_type}'")
         return None
 
     try:
         return ExtractedData(to=str(to), message=str(message), type=notif_type)
-    except Exception:
+    except Exception as e:
+        logger.warning(f"[normalize] Pydantic validation failed: {type(e).__name__} - {e}")
         return None
